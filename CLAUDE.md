@@ -5,11 +5,28 @@
 This project investigates whether **complex-valued (2D) attention scores** improve transformer parameter efficiency compared to standard real-valued (1D) attention. The hypothesis: 2D merges preserve relational information (via phase/angle), making compensatory mechanisms (residual streams, multi-head redundancy, depth) partially redundant.
 
 **Platform:** nanochat — minimal LLM training pipeline. Single complexity dial: `--depth`.
-**Branch:** `claude/2d-merge-attention-DfRZ2`
+**Branch:** `claude/2d-merge-attention-VMQJb`
 
 ## Current Phase
 
 **Phase 1 — Sanity Check.** Single GPU, depth 8, reduced data. Determine if complex attention produces any measurable signal.
+
+## Session State
+
+### Infrastructure Status (as of 2026-03-11)
+- **Lambda API key:** Working. Set `LAMBDA_API_KEY` as environment variable — session_check.sh auto-creates `.env`.
+- **SSH key:** Registered as `nanochat-test` on Lambda account. Private key was at `~/.ssh/lambda_key` but may not persist across sessions. If SSH key is missing, register a new one via Lambda dashboard or API (`POST /api/v1/ssh-keys`).
+- **gpu.sh:** Fixed and tested. Auto-detects SSH keys from Lambda API. Rate table updated with current pricing.
+- **Full launch/stop cycle:** Verified working (gpu_1x_a10, us-east-1).
+- **GPU availability note:** Lambda capacity is tight. H100s/A100s often unavailable. Check availability before planning experiments. A10 (24GB, $0.86/hr) may be the only option for quick tests.
+
+### What's Done
+- Infrastructure: gpu.sh launch/stop/status/cost all working
+- Cost logging: experiments/cost_log.csv tracking all GPU activity
+
+### What's Next
+- Phase 1 implementation: complex attention in `nanochat/gpt.py` (CausalSelfAttention)
+- No code changes to model architecture yet — only infrastructure has been set up
 
 ## Repository Structure
 
@@ -42,7 +59,7 @@ experiments/             — Experiment configs, logs, results, decisions.
 - Tag experimental code clearly: `# 2D-MERGE: description`
 
 ### Git
-- All work on branch `claude/2d-merge-attention-DfRZ2`.
+- All work on branch `claude/2d-merge-attention-VMQJb`.
 - Commit messages: `[phase N] description` (e.g., `[phase 1] add complex attention Option A`).
 - Never force-push. Never push to master.
 

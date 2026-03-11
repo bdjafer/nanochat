@@ -8,14 +8,38 @@ PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 COST_LOG="$PROJECT_DIR/experiments/cost_log.csv"
 
 echo "=== 2D Merge Attention Research ==="
-echo "Branch: claude/2d-merge-attention-DfRZ2"
+echo "Branch: claude/2d-merge-attention-VMQJb"
 echo ""
 
-# Check for .env
-if [[ ! -f "$PROJECT_DIR/.env" ]]; then
-    echo "NOTE: No .env file found. GPU management requires LAMBDA_API_KEY."
-    echo "Create .env with: echo 'LAMBDA_API_KEY=your_key' > .env"
+# Auto-create .env from environment variable if missing
+if [[ ! -f "$PROJECT_DIR/.env" ]] && [[ -n "${LAMBDA_API_KEY:-}" ]]; then
+    echo "LAMBDA_API_KEY=$LAMBDA_API_KEY" > "$PROJECT_DIR/.env"
+    echo "Auto-created .env from environment variable."
     echo ""
+elif [[ ! -f "$PROJECT_DIR/.env" ]]; then
+    echo "NOTE: No .env file found. GPU management requires LAMBDA_API_KEY."
+    echo "Set LAMBDA_API_KEY env var (auto-creates .env) or: echo 'LAMBDA_API_KEY=your_key' > .env"
+    echo ""
+fi
+
+# Check SSH key is registered with Lambda (needed for instance launch)
+if [[ -f "$PROJECT_DIR/.env" ]]; then
+    source "$PROJECT_DIR/.env"
+    if [[ -n "${LAMBDA_API_KEY:-}" ]]; then
+        SSH_KEY_COUNT=$(curl -s --max-time 5 \
+            -H "Authorization: Bearer $LAMBDA_API_KEY" \
+            "https://cloud.lambdalabs.com/api/v1/ssh-keys" 2>/dev/null | python3 -c "
+import json, sys
+data = json.load(sys.stdin).get('data', [])
+print(len(data))
+" 2>/dev/null || echo "0")
+        if [[ "$SSH_KEY_COUNT" -eq 0 ]]; then
+            echo "WARNING: No SSH keys registered with Lambda Labs."
+            echo "Register one at https://cloud.lambdalabs.com/ssh-keys or via API."
+            echo "gpu.sh launch will fail without a registered SSH key."
+            echo ""
+        fi
+    fi
 fi
 
 # Check for running instances (only if API key available)
