@@ -37,10 +37,28 @@ log_cost() {
 # Hourly rates (approximate, USD)
 get_rate() {
     case "${1:-}" in
-        gpu_1x_h100_sxm5)  echo "3.29" ;;
-        gpu_1x_a100_sxm4)  echo "1.29" ;;
-        gpu_8x_h100_sxm5)  echo "23.92" ;;
-        gpu_8x_a100_sxm4)  echo "10.32" ;;
+        gpu_1x_h100_sxm5)  echo "3.78" ;;
+        gpu_1x_h100_pcie)   echo "2.86" ;;
+        gpu_1x_a100_sxm4)  echo "1.48" ;;
+        gpu_1x_a100)        echo "1.48" ;;
+        gpu_1x_a10)         echo "0.86" ;;
+        gpu_1x_a6000)       echo "0.92" ;;
+        gpu_1x_rtx6000)     echo "0.58" ;;
+        gpu_1x_gh200)       echo "1.99" ;;
+        gpu_2x_h100_sxm5)  echo "7.34" ;;
+        gpu_2x_a100)        echo "2.96" ;;
+        gpu_2x_a6000)       echo "1.84" ;;
+        gpu_4x_h100_sxm5)  echo "14.20" ;;
+        gpu_4x_a100)        echo "5.92" ;;
+        gpu_4x_a6000)       echo "3.68" ;;
+        gpu_8x_h100_sxm5)  echo "27.52" ;;
+        gpu_8x_a100_80gb_sxm4) echo "16.48" ;;
+        gpu_8x_a100)        echo "11.84" ;;
+        gpu_8x_v100)        echo "5.04" ;;
+        gpu_1x_b200_sxm6)  echo "6.08" ;;
+        gpu_2x_b200_sxm6)  echo "11.94" ;;
+        gpu_4x_b200_sxm6)  echo "23.40" ;;
+        gpu_8x_b200_sxm6)  echo "45.92" ;;
         *)                  echo "0.00" ;;
     esac
 }
@@ -116,11 +134,23 @@ cmd_launch() {
     echo "  Type: $instance_type"
     echo "  Rate: \$$rate/hr"
 
+    # Get SSH key names from Lambda account
+    local ssh_keys
+    ssh_keys=$(curl -s -H "$AUTH_HEADER" "$API_BASE/ssh-keys" | python3 -c "
+import json, sys
+data = json.load(sys.stdin).get('data', [])
+print(json.dumps([k['name'] for k in data]))
+")
+    if [[ "$ssh_keys" == "[]" ]]; then
+        echo "ERROR: No SSH keys registered with Lambda. Add one at https://cloud.lambdalabs.com/ssh-keys"
+        return 1
+    fi
+
     local payload
     if [[ -n "$region" ]]; then
-        payload="{\"region_name\": \"$region\", \"instance_type_name\": \"$instance_type\", \"ssh_key_names\": [], \"quantity\": 1}"
+        payload="{\"region_name\": \"$region\", \"instance_type_name\": \"$instance_type\", \"ssh_key_names\": $ssh_keys, \"quantity\": 1}"
     else
-        payload="{\"instance_type_name\": \"$instance_type\", \"ssh_key_names\": [], \"quantity\": 1}"
+        payload="{\"instance_type_name\": \"$instance_type\", \"ssh_key_names\": $ssh_keys, \"quantity\": 1}"
     fi
 
     local response
