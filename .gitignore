@@ -9,5 +9,10 @@ eval_bundle/
 .env
 
 # Local setup
-CLAUDE.md
 wandb/
+
+# Experiment artifacts (track configs/registry, not logs/checkpoints)
+experiments/*/training_*.log
+experiments/*/checkpoints/
+experiments/*/*.pt
+experiments/*/*.bin
